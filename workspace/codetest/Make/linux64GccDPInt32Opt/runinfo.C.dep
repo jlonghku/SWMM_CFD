@@ -1,0 +1,6 @@
+$(OBJECTS_DIR)/runinfo.C.dep: \
+runinfo.C \
+runinfo.H \
+
+runinfo.H :
+

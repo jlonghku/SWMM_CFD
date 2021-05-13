@@ -1,0 +1,68 @@
+@startuml
+interface ListIterator
+interface Iterator
+interface Collection
+interface List
+interface Set
+interface Map
+interface Map.Entry
+interface Queue
+interface Deque
+abstract class AbstractCollection{
+    {abstract} +int size()
+    {abstract} +Iterator<E> iterator()
+}
+abstract class AbstractList{
+    +Iterator<E> iterator()
+
+}
+abstract class AbstractSet
+abstract class AbstractMap{
+    {abstract} +Set<Entry<K,V>> entrySet()
+}
+abstract class AbstractSequentialList
+abstract class Dictionary
+class ArrayList
+class Vector
+class LinkedList
+class HashSet
+class Hashtable
+class HashMap
+class LinkedHashMap
+
+Iterator <|-- ListIterator
+Iterator <|-- Collection
+Collection <|-- List
+Collection <|-- Set
+Collection <|.. AbstractCollection
+Collection <|-- Queue
+Queue <|-- Deque
+Deque <|.. ArrayList
+List <|.. AbstractList
+List <|.. Vector
+List <|.. LinkedList
+Set <|.. AbstractSet
+Set <|.. HashSet
+Map <|.. AbstractMap
+Map <|.. Hashtable
+Map <|.. HashMap
+Map <|.. LinkedHashMap
+AbstractCollection <|-- AbstractList
+AbstractCollection <|-- AbstractSet
+AbstractList <|-- ArrayList
+AbstractList <|-- Vector
+AbstractList <|-- AbstractSequentialList
+AbstractSet <|-- HashSet
+AbstractSequentialList <|-- LinkedList
+AbstractMap <|-- HashMap
+Dictionary <|-- Hashtable
+HashMap <|-- LinkedHashMap
+
+note as N1 #green
+AbstractCollection--iterator作为数据源
+AbstractList--实现好的iterator作为数据源
+ArrayList--数组是数据操作的对象
+end note
+
+note right of ArrayList:批量操作变为数组操作
+@enduml
