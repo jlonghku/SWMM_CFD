@@ -1,0 +1,214 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  8
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#includeEtc "caseDicts/mesh/generation/snappyHexMeshDict.cfg"
+
+castellatedMesh on;
+snap            on;
+addLayers       off;
+
+geometry
+{
+   walls
+    {
+        type triSurfaceMesh;
+        file "catchment.stl";
+    }
+    cylinder1
+    {
+        type searchableCylinder;
+        point1 (520 870 4.6);
+        point2 (520 870 9);
+          radius 15;
+    }
+    inlet1
+    {
+        type            searchableDisk;
+        origin          (520 870 4.6);
+        normal          (0 0 1);
+         radius 1;
+    }
+    cylinder2
+    {
+        type searchableCylinder;
+        point1 (640 870 0);
+        point2 (640 870 9);
+           radius 15;
+    }
+    inlet2
+    {
+        type            searchableDisk;
+        origin          (640 870 4.6);
+        normal          (0 0 1);
+         radius 1;
+    }
+    cylinder3
+    {
+        type searchableCylinder;
+        point1 (810 835 0);
+        point2 (810 835 9);
+           radius 15;
+    }
+    inlet3
+    {
+        type            searchableDisk;
+        origin          (810 835 4);
+        normal          (0 0 1);
+         radius 1;
+    }
+    cylinder4
+    {
+        type searchableCylinder;
+        point1 (950 855 0);
+        point2 (950 855 9);
+           radius 15;
+    }
+    inlet4
+    {
+        type            searchableDisk;
+        origin          (950 855 2.4);
+        normal          (0 0 1);
+         radius 1;
+    }
+    cylinder5
+    {
+        type searchableCylinder;
+        point1 (1110 865 0);
+        point2 (1110 865 9);
+           radius 15;
+    }
+    inlet5
+    {
+        type            searchableDisk;
+        origin          (1110 865 2);
+        normal          (0 0 1);
+         radius 1;
+    }
+    cylinder6
+    {
+        type searchableCylinder;
+        point1 (1330 490 0);
+        point2 (1330 490 9);
+           radius 15;
+    }
+    inlet6
+    {
+        type            searchableDisk;
+        origin          (1330 490 8.8  );
+        normal          (0 0 1);
+         radius 1;
+    }
+    
+};
+
+castellatedMeshControls
+{
+    features
+    (
+        {
+           file "catchment.eMesh";
+           level 2;
+        }
+    );
+
+    refinementSurfaces
+    {
+        "inlet.*"
+        {
+            level (3 3);
+            patchInfo
+            {
+                type patch;
+            }
+        }
+      walls
+      {
+          level (2 2);
+          patchInfo
+            {
+                type wall;
+            }
+        }
+
+    }
+
+    refinementRegions
+    { 
+        "cylinder.*"
+        {
+            mode inside;
+            levels ((1.0 10));
+        }
+    }
+    locationInMesh (1110 865 8);
+}
+
+snapControls
+{
+    // Number of patch smoothing iterations before finding correspondence
+    // to surface
+    nSmoothPatch 3;
+
+    // Maximum relative distance for points to be attracted by surface.
+    // True distance is this factor times local maximum edge length.
+    // Note: changed(corrected) w.r.t 17x! (17x used 2* tolerance)
+    tolerance 3.0;
+
+    // Number of mesh displacement relaxation iterations.
+    nSolveIter 30;
+
+    // Maximum number of snapping relaxation iterations. Should stop
+    // before upon reaching a correct mesh.
+    nRelaxIter 5;
+
+    // Feature snapping
+
+        // Number of feature edge snapping iterations.
+        // Leave out altogether to disable.
+        nFeatureSnapIter 15;
+
+        // Detect (geometric only) features by sampling the surface
+        // (default=false).
+        implicitFeatureSnap false;
+
+        // Use castellatedMeshControls::features (default = true)
+        explicitFeatureSnap true;
+
+        // Detect features between multiple surfaces
+        // (only for explicitFeatureSnap, default = false)
+        multiRegionFeatureSnap false;
+}
+
+addLayersControls
+{
+    layers
+    {
+        
+    }
+
+    relativeSizes       true;
+    expansionRatio      1.2;
+    finalLayerThickness 0.5;
+    minThickness        1e-3;
+}
+
+writeFlags
+(
+);
+
+mergeTolerance 1e-6;
+
+// ************************************************************************* //

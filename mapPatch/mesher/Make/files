@@ -1,0 +1,2 @@
+mesher.C
+EXE = $(FOAM_USER_APPBIN)/mesher

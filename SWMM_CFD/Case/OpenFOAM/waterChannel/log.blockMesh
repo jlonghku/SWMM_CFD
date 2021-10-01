@@ -1,0 +1,80 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  8
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 8-340defec456f
+Exec   : blockMesh
+Date   : Aug 10 2021
+Time   : 20:39:42
+Host   : "jlong-pc"
+PID    : 29489
+I/O    : uncollated
+Case   : /home/jlong/OpenFOAM/jlong-8/run/waterChannelorig
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Deleting polyMesh directory
+    "/home/jlong/OpenFOAM/jlong-8/run/waterChannelorig/constant/polyMesh"
+Creating block mesh from
+    "system/blockMeshDict"
+Creating block edges
+No non-planar block faces defined
+Creating topology blocks
+Creating topology patches
+
+Creating block mesh topology
+--> FOAM Warning : 
+    From function Foam::polyMesh::polyMesh(const Foam::IOobject&, Foam::pointField&&, const cellShapeList&, const faceListList&, const wordList&, const Foam::PtrList<Foam::dictionary>&, const Foam::word&, const Foam::word&, bool)
+    in file meshes/polyMesh/polyMeshFromShapeMesh.C at line 873
+    Found 3 undefined faces in mesh; adding to default patch.
+
+Check topology
+
+	Basic statistics
+		Number of internal faces : 0
+		Number of boundary faces : 6
+		Number of defined boundary faces : 6
+		Number of undefined boundary faces : 0
+	Checking patch -> block consistency
+
+Creating block offsets
+Creating merge list .
+
+Creating polyMesh from blockMesh
+Creating patches
+Creating cells
+Creating points with scale 1
+    Block 0 cell size :
+        i : 1
+        j : 0.6 0.6 .. 0.6 0.61 .. 0.61 0.61 
+        k : 0.158114 .. 0.158114 0.158114 0.155242 .. 0.155242 0.155242 .. 0.155242 
+
+There are no merge patch pairs edges
+
+Writing polyMesh
+----------------
+Mesh Information
+----------------
+  boundingBox: (0 -4 5) (20 4 8)
+  nPoints: 4851
+  nCells: 4000
+  nFaces: 12800
+  nInternalFaces: 11200
+----------------
+Patches
+----------------
+  patch 0 (start: 11200 size: 200) name: inlet
+  patch 1 (start: 11400 size: 200) name: outlet
+  patch 2 (start: 11600 size: 200) name: atmosphere
+  patch 3 (start: 11800 size: 1000) name: walls
+
+End
+

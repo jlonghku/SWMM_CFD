@@ -1,0 +1,6 @@
+/* dynamicCode:
+ * SHA1 = 6cc1e310a7d375e209887921effe5057155691e5
+ */
+functionObjectTemplate.C
+
+LIB = $(PWD)/../platforms/$(WM_OPTIONS)/lib/libwriteTime_6cc1e310a7d375e209887921effe5057155691e5

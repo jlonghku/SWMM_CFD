@@ -1,0 +1,54 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  8
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+Build  : 8-340defec456f
+Exec   : extrudeMesh
+Date   : Aug 10 2021
+Time   : 20:39:42
+Host   : "jlong-pc"
+PID    : 29491
+I/O    : uncollated
+Case   : /home/jlong/OpenFOAM/jlong-8/run/waterChannelorig
+nProcs : 1
+sigFpe : Enabling floating point exception trapping (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 10)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Selecting extrudeModel linearDirection
+Extruding from mesh using model linearDirection
+Collapsing edges < 0.0001 of bounding box
+
+Extruding patches 1(outlet) on mesh "/home/jlong/OpenFOAM/jlong-8/run/waterChannelorig"
+
+Create mesh for time = 0
+
+Adding overall 0 processor patches.
+Testing:"/home/jlong/OpenFOAM/jlong-8/run/waterChannelorig/system/fvSchemes"
+Mesh bounding box : (0 -4 5) (78.8235 15.7647 9.17647)
+        with span : (78.8235 19.7647 4.17647)
+Merge distance    : 0.000417647
+
+Collapsing edges < 0.000417647 ...
+
+            Uncollapsed edges = 0 / 53310
+    Number of points : 18711
+    Not visited      : 0
+    Not collapsed    : 18711
+    Collapsed        : 0
+
+Collapsing 0 cells
+Writing mesh to "constant/region0"
+
+Writing added cells to cellSet addedCells
+
+End
+

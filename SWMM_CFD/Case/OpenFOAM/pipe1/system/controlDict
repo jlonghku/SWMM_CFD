@@ -1,0 +1,93 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  8
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2;
+    format          ascii;
+    class           dictionary;
+    location        "system";
+    object          controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     interFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         180;
+
+deltaT          1;
+
+writeControl    adjustableRunTime;
+
+writeInterval   30;
+
+purgeWrite      0;
+
+writePrecision  6;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+
+maxCo           6;
+
+maxAlphaCo      2;
+
+maxDeltaT       1;
+
+functions
+{
+    inletFlux
+    {
+        type            surfaceFieldValue;
+        libs            ( "libfieldFunctionObjects.so" );
+        writeControl    timeStep;
+        log             true;
+        writeFields     false;
+        regionType      patch;
+        name            inlet;
+        operation       sum;
+        fields          ( rhoPhi );
+    }
+    outletFlux
+    {
+        $inletFlux      ;
+        name            outlet;
+    }
+    time
+    {
+        type            coded;
+        libs            ( "libutilityFunctionObjects.so" );
+        name            writeTime;
+        writeControl    timeStep;
+        writeInterval   1;
+        code            #{
+        #};
+        codeExecute     #{
+            const Time& runTime = mesh().time();        
+            OFstream out("/home/jlong/workspace/SWMM_CFD/Case/OpenFOAM/pipe1/time.log");
+            out<<runTime.value()<<" "<<runTime.deltaTValue();
+        #};
+    }
+}
+
+libs            ( "libcustomfiniteVolume.so" );
+
+
+// ************************************************************************* //

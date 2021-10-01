@@ -1,0 +1,6 @@
+/* dynamicCode:
+ * SHA1 = 3653b5de919e30f64394a6eb9abbe8c5f0fe6442
+ */
+functionObjectTemplate.C
+
+LIB = $(PWD)/../platforms/$(WM_OPTIONS)/lib/libgetDeltaT_3653b5de919e30f64394a6eb9abbe8c5f0fe6442
