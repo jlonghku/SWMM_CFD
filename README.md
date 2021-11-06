@@ -1,5 +1,5 @@
 # SWMM_CFD
-Framework for Coupling SWMM and OpenFOAM
+Model coupling SWMM and OpenFOAM
 ## Installation
 The tool is designed to run under Linux operating system, where Ubuntu 18.04 and 20.04 are recommended. It contains a self-extracting setup script. To install it:
 1. Select a path where you want to install it and use the below commands in this path
