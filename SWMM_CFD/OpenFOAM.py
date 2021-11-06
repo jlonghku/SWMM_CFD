@@ -3,6 +3,7 @@ import subprocess
 import tools as tl
 import threading
 import numpy as np
+from datetime import timedelta
 
 
 class case(threading.Thread):
@@ -14,49 +15,49 @@ class case(threading.Thread):
 
         # pre-processing
         ## setup path and filenames
-        self.name_ = self.dict["name"]
-        self.path_ = self.dict["path"]
-        self.comDir_ = self.dict["comDir"]
+        self.name_ = inp["name"]
+        self.path_ = inp["path"]
+        self.comDir_ = inp["comDir"]
         self.lockFile_ = self.comDir_ + "/OpenFOAM_" + self.name_ + ".lock"
 
-        ## setup time
-        self.startTime_ = self.dict["timeControl"]["startTime"]
+        ## setup time (relative)
+        self.offSet_ = inp["tc"].offSet_
+        self.startTime_ = inp["timeControl"]["startTime"]
         self.time_ = self.startTime_
-        self.endTime_ = self.dict["timeControl"]["endTime"]
-        self.timeStep_ = self.dict["timeControl"]["timeStep"]
-        self.loadTime(self.dict["timeControl"])
-        ## clean postProcessing dir for time record
-        tl.cleanDir("%s/postProcessing/time/%s" % (self.path_, self.time_))
+        self.endTime_ = inp["timeControl"]["endTime"]
+        self.timeStep_ = inp["timeControl"]["timeStep"]
+        tl.setTime_OpenFOAM(self.path_, inp["timeControl"])
+
+        ## clean time record
         self.timeFile_ = "%s/time.log" % self.path_
+        if os.path.exists(self.timeFile_):
+            os.remove(self.timeFile_)
 
         ## setup boundary
-        self.boundary_ = self.dict["boundaryControl"]
+        self.boundary_ = inp["bc"].boundary()
         self.modifyBoundary()
         self.outFile_ = {
-            k: self.comDir_ + "/data_OpenFOAM_" + self.name_ + "_" + k + ".out"
+            k: "%s/data_OpenFOAM_%s_%s.out" % (self.comDir_, self.name_, k)
             for k in set([v[1] for v in self.boundary_])
         }
-
-    def loadTime(self, dict):
-        os.system(
-            "foamDictionary %s/system/controlDict -entry %s  -set %g >/dev/null"
-            % (self.path_, "startTime", dict["startTime"])
-        )
-        os.system(
-            "foamDictionary %s/system/controlDict -entry %s  -set %g >/dev/null"
-            % (self.path_, "endTime", dict["endTime"])
-        )
-        os.system(
-            "foamDictionary %s/system/controlDict -entry %s  -set %g >/dev/null"
-            % (self.path_, "writeInterval", dict["timeStep"])
-        )
+        nCorrectors_ = tl.readNCorr_OpenFOAM(self.path_)
+        self.Correctors_ = [
+            nCorrectors_,
+            nCorrectors_,
+            timedelta(0, self.time_) + self.offSet_,
+        ]
 
     def run(self):
         # loop for OpenFOAM simulation (essential function)
         ## first run
+        # print("(internal) OpenFOAM-%s time:\n %s" % (self.name_,self.startTime_))
         first = True
+        print(
+            "OpenFOAM-%s time:\n%s"
+            % (self.name_, timedelta(0, self.startTime_) + self.offSet_)
+        )
         ## run
-        while self.time() < self.endTime_:
+        while not self.end():
             self.con_child.acquire()
             if first:
                 subprocess.Popen(
@@ -67,12 +68,17 @@ class case(threading.Thread):
                     stdout=subprocess.DEVNULL,
                 )
                 first = False
+
             else:
-                self.continueRun()
+                self.conRun()
+                if self.Correctors_[0] == 1:
+                    self.Correctors_[0] = self.Correctors_[1]
+                    self.Correctors_[2] = timedelta(0, self.time_) + self.offSet_
+                else:
+                    self.Correctors_[0] -= 1
             self.wait()
             self.update()
-            print("OpenFOAM-%s time: " % self.dict["name"])
-            print(self.time())
+            # print("(internal) OpenFOAM-%s time:\n %s" % (self.name_,self.time()))
             self.con_father.release()
 
     def getSem(self, father, child):
@@ -80,19 +86,54 @@ class case(threading.Thread):
         self.con_child = child
         self.con_father = father
 
-    def continueRun(self):
-        # restart OpenFOAM solver
+    def TIME(self):
+        # return time with offSet to father thread (essential function)
+        return self.Correctors_[2]
+
+    def end(self):
+        # check if the case is finished (essential function)
+        return tl.readTime_OpenFOAM(self.timeFile_, self.lockFile_)[0] >= self.endTime_
+
+    def BOUNDARY(self):
+        # return boundary conditions to father thread (essential function)
+        return self.boundary_
+
+    def setBOUNDARY(self, boundary):
+        # get boundary conditions from father thread (essential function)
+        self.boundary_ = tl.transferBoundary(boundary)
+        for k, v in self.outFile_.items():
+            if os.path.exists(v):
+                fieldType = tl.writeBoundary_OpenFOAM(self.boundary_, k, v)
+
+                bcFiles = (
+                    "%s patchPoints_OpenFOAM_%s_%s patchFaces_OpenFOAM_%s_%s data_OpenFOAM_%s_%s"
+                    % (self.comDir_, self.name_, k, self.name_, k, self.name_, k)
+                )
+
+                mapcmd = "mapPatch -%s -toFiles \( %s.in \) -fromFiles \( %s.out \)" % (
+                    fieldType,
+                    bcFiles,
+                    bcFiles,
+                )
+
+                subprocess.call(mapcmd, shell=True, stdout=subprocess.DEVNULL)
+                # os.system(mapcmd)
+
+    ######################################################################
+    # additional functions
+    def conRun(self):
+        # resume OpenFOAM solver
         os.system("touch " + self.lockFile_)
 
     def isWait(self):
         # check the running state of OpenFOAM solver
-        isRun = os.path.exists(self.lockFile_)
         isOut = False
         for v in self.outFile_.values():
             isOut = isOut or os.path.exists(v)
-        self.updateTime()
-        isStop = self.time_ == self.endTime_
-        return isRun or not (isStop or isOut)
+        isStop = (
+            tl.readTime_OpenFOAM(self.timeFile_, self.lockFile_)[0] == self.endTime_
+        )
+        return os.path.exists(self.lockFile_) or not (isStop or isOut)
 
     def wait(self):
         # wait for solver stopping
@@ -100,7 +141,7 @@ class case(threading.Thread):
             pass
 
     def time(self):
-        # return time
+        # return internal time for current case
         return self.time_
 
     def update(self):
@@ -110,82 +151,17 @@ class case(threading.Thread):
 
     def updateTime(self):
         # update time
-        self.time_ = tl.readTime_OpenFOAM(self.timeFile_)
+        self.time_ = round(sum(tl.readTime_OpenFOAM(self.timeFile_, self.lockFile_)))
 
     def updateBoundary(self):
         # update boundary
-        if self.time_ < self.endTime_:
-            for v in self.outFile_.values():
-                if os.path.exists(v):
-                    b = tl.readBoundary_OpenFOAM(v)
-                    for v1 in b:
-                        for v2 in self.boundary_:
-                            if v1[0] == v2[1] and v1[1] == v2[2]:
-                                v2[3].update(v1[2])
-
-    def boundary(self):
-        return self.boundary_
-
-    def setBoundary(self, boundary):
-        # get boundary conditions from father thread (essential function)
-        self.boundary_ = boundary
-        self.transferBoundary()
-        self.loadBoundary()
-
-    def transferBoundary(self):
-        # format the boundary value
-        for v in self.boundary_:
-            if v[3].get("model", 0) == "SWMM":
-                if v[3].get("value_OpenFOAM", False):
-                    magSfs = v[3]["magSf_OpenFOAM"]
-                    values = v[3]["value_OpenFOAM"]
-                    snGrads = v[3]["snGrad_OpenFOAM"]
-                    Sfs = v[3]["Sf_OpenFOAM"]
-                    val = 0
-                    if isinstance(values[0], tuple):
-                        for j in range(len(values)):
-                            val += np.dot(values[j], Sfs[j])
-                    else:
-                        for j in range(len(values)):
-                            val += magSfs[j] * values[j]
-                    if val != 0:
-                        v[3]["value_OpenFOAM"] = [
-                            i * v[3]["value_SWMM"] / val for i in values
-                        ]
-
-    def loadBoundary(self):
-        for k, v in self.outFile_.items():
+        for v in self.outFile_.values():
             if os.path.exists(v):
-                fieldType = tl.writeBoundary_OpenFOAM(self.boundary_, k, v)
-
-                bcFiles = (
-                    self.comDir_
-                    + " patchPoints_OpenFOAM_"
-                    + self.name_
-                    + "_"
-                    + k
-                    + " patchFaces_OpenFOAM_"
-                    + self.name_
-                    + "_"
-                    + k
-                    + " data_OpenFOAM_"
-                    + self.name_
-                    + "_"
-                    + k
-                )
-
-                mapcmd = (
-                    "mapPatch -"
-                    + fieldType
-                    + " -toFiles \( "
-                    + bcFiles
-                    + ".in \) -fromFiles \( "
-                    + bcFiles
-                    + ".out \)"
-                )
-
-                subprocess.call(mapcmd, shell=True, stdout=subprocess.DEVNULL)
-                # os.system(mapcmd)
+                b = tl.readBoundary_OpenFOAM(v)
+                for v1 in b:
+                    for v2 in self.boundary_:
+                        if v1[0] == v2[1] and v1[1] == v2[2]:
+                            v2[3].update(v1[2])
 
     def modifyBoundary(self):
         # modify boundary parameters in openfoam inp file
@@ -197,6 +173,8 @@ class case(threading.Thread):
             "foamDictionary %s/system/controlDict -entry functions -merge {}"
             % self.path_
         )
+
+        self.nCorrectors_ = 2
         subprocess.call(
             [
                 "foamDictionary",
@@ -205,19 +183,19 @@ class case(threading.Thread):
                 "functions.time",
                 "-merge",
                 """{
-        type            coded;
-        libs            ( "libutilityFunctionObjects.so" );
-        name            writeTime;
-        writeControl    timeStep;
-        writeInterval   1;
-        code            #{
-        #};
-        codeExecute     #{
-            const Time& runTime = mesh().time();        
-            OFstream out("%s/time.log");
-            out<<runTime.value()<<" "<<runTime.deltaTValue();
-        #};
-    }"""
+                type            coded;
+                libs            ( "libutilityFunctionObjects.so" );
+                name            writeTime;
+                writeControl    timeStep;
+                writeInterval   1;
+                code            #{
+                #};
+                codeExecute     #{
+                    const Time& runTime = mesh().time();        
+                    OFstream out("%s/time.log");
+                    out<<runTime.value()<<" "<<runTime.deltaTValue();
+                    #};
+                }"""
                 % self.path_,
             ],
             stdout=subprocess.DEVNULL,
@@ -240,7 +218,7 @@ class case(threading.Thread):
                                 calcInterval    %s;
                                 file            data_OpenFOAM_%s_%s;
                                 initByExternal  0;
-                            }"""
+                    }"""
                     % (
                         self.comDir_,
                         self.timeStep_,
@@ -250,8 +228,12 @@ class case(threading.Thread):
                 ],
                 stdout=subprocess.DEVNULL,
             )
+
             subprocess.call(
                 ["createExternalCoupledPatchGeometryNew", "-case", self.path_, v[1]],
                 stdout=subprocess.DEVNULL,
             )
-            os.system("foamListTimes -rm -case %s" % self.path_)
+            os.system(
+                "foamListTimes -rm -case %s -time %s:"
+                % (self.path_, self.startTime_ + self.timeStep_)
+            )

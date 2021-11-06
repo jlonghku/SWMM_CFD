@@ -1,15 +1,6 @@
-import os, shutil, json, ast
+import os, shutil, ast
 import ast, re
-
-
-def dicMeg(dic1, dic2):
-    # merge dict2 to dict1
-    for i in dic2:
-        if i in dic1:
-            if type(dic1[i]) is dict and type(dic2[i]) is dict:
-                dicMeg(dic1[i], dic2[i])
-        else:
-            dic1[i] = dic2[i]
+import numpy as np
 
 
 def turn(s, char1, char2):
@@ -29,10 +20,11 @@ def resetOpenFOAM(path):
 
 
 def bakfile(f1):
-    if not os.path.exists(f1 + ".orig"):
-        shutil.copyfile(f1, f1 + ".orig")
-    else:
-        shutil.copyfile(f1 + ".orig", f1)
+    if os.path.isfile(f1):
+        if not os.path.exists(f1 + ".orig"):
+            shutil.copyfile(f1, f1 + ".orig")
+        else:
+            shutil.copyfile(f1 + ".orig", f1)
 
 
 def readBoundary_OpenFOAM(path):
@@ -65,57 +57,107 @@ def writeBoundary_OpenFOAM(data, k, path):
                         return "s"
 
 
-def readDict(path):
-    path = "/home/jlong/workspace/SWMM_CFD/Case/comms/data_OpenFOAM_cavity.out"
-    with open(path) as f:
-        f1 = f.read().replace(" ", ",")
-        data = ast.literal_eval(f1)
-        print(data["movingWall"]["value"][0])
-        return ast.literal_eval(f1)
-
-
-def save(dict, path):
-    with open(path, "w") as outfile:
-        json.dump(dict, outfile, ensure_ascii=False)
-        outfile.write("\n")
-
-
-def load(path):
-    with open(path, "r") as loadfile:
-        new_dict = json.load(loadfile)
-        return new_dict
-
-
 def cleanDir(path):
     if not os.path.exists(path):
         os.makedirs(path)
     else:
         shutil.rmtree(path)
         os.makedirs(path)
+    os.system("sudo chmod 777 -R " + path)
 
 
-def listdirs(path):
-    dirs = []
-    names = []
-    for f in os.listdir(path):
-        d = os.path.join(path, f)
-        if os.path.isdir(d):
-            dirs.append(d)
-            names.append(f)
-    dirs.sort()
-    names.sort()
-    return list(zip(dirs, names))
+def readTime_OpenFOAM(files, lockFile):
+    while True:
+        if not os.path.exists(lockFile):
+            if not os.path.exists(files):
+                time = [0, 0]
+            else:
+                with open(files, "r") as f:
+                    lines = f.readlines()
+                    time = lines[0].split()
+            return float(time[0]), float(time[1])
 
 
-def readTime_OpenFOAM(files):
-    
-    if not os.path.exists(files):
-        time = [0,0]
-    else:
-        with open(files, "r") as f:
-            lines = f.readlines()
-            time = lines[-1].split()
-    return float(time[0])+float(time[1])
+def setTime_OpenFOAM(path, dict):
+    # setup the time control file
+    os.system(
+        "foamDictionary %s/system/controlDict -entry %s  -set %g >/dev/null"
+        % (path, "startTime", dict["startTime"])
+    )
+    os.system(
+        "foamDictionary %s/system/controlDict -entry %s  -set %g >/dev/null"
+        % (path, "endTime", dict["endTime"])
+    )
+    os.system(
+        "foamDictionary %s/system/controlDict -entry %s  -set %g >/dev/null"
+        % (path, "writeInterval", dict["timeStep"])
+    )
+
+
+def readNCorr_OpenFOAM(path):
+    return int(
+        os.popen(
+            "foamDictionary %s/system/fvSolution -entry PIMPLE.nCorrectors -value"
+            % path
+        ).read()
+    )
+
+
+def transferBoundary(boundary):
+    # format the boundary value
+    for v in boundary:
+        if len(v[3]) > 1:
+            if v[3].get("model", 0) == "SWMM":
+                if v[3].get("value_OpenFOAM", False):
+                    magSfs = v[3]["magSf_OpenFOAM"]
+                    values = v[3]["value_OpenFOAM"]
+                    snGrads = v[3]["snGrad_OpenFOAM"]
+                    Sfs = v[3]["Sf_OpenFOAM"]
+                    val1 = 0
+                    if isinstance(values[0], tuple):
+                        v[3]["phi"] = 0
+                        for j in range(len(values)):
+                            val1 += np.dot(np.array([1, 1, 1]), np.array(Sfs[j]))
+                            v[3]["phi"] += np.dot(np.array(values[j]), np.array(Sfs[j]))
+                        if v[3]["phi"] != 0:
+                            v[3]["value_OpenFOAM"] = [
+                                tuple(np.array(i) * v[3]["value_SWMM"] / v[3]["phi"])
+                                for i in values
+                            ]
+                        else:
+                            v[3]["value_OpenFOAM"] = [
+                                tuple(np.array([1, 1, 1]) * v[3]["value_SWMM"] / val1)
+                                for i in values
+                            ]
+                    else:
+                        v[3]["avg"] = 0
+                        for j in range(len(values)):
+                            v[3]["avg"] += (
+                                magSfs[j] * values[j] / sum(magSfs)
+                                if sum(magSfs) != 0
+                                else 0
+                            )
+                        if v[3]["avg"] != 0:
+                            v[3]["value_OpenFOAM"] = [
+                                i * v[3]["value_SWMM"] / v[3]["avg"] for i in values
+                            ]
+            elif v[3].get("model", 0) == "OpenFOAM":
+                magSfs = v[3]["magSf_OpenFOAM"]
+                values = v[3]["value_OpenFOAM"]
+                snGrads = v[3]["snGrad_OpenFOAM"]
+                Sfs = v[3]["Sf_OpenFOAM"]
+                if isinstance(values[0], tuple):
+                    v[3]["phi"] = 0
+                    for j in range(len(values)):
+                        v[3]["phi"] += np.dot(np.array(values[j]), np.array(Sfs[j]))
+                    v[3]["value_SWMM"] = v[3]["phi"]
+                else:
+                    v[3]["avg"] = 0
+                    for j in range(len(values)):
+                        v[3]["avg"] += magSfs[j] * values[j] / sum(magSfs) / 9810
+                    v[3]["value_SWMM"] = v[3]["avg"]
+            
+    return boundary
 
 
 ###########################################

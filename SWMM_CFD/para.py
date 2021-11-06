@@ -4,14 +4,47 @@ import os
 dir = os.path.dirname(os.path.realpath(__file__)) + "/Case"
 
 # timeControl dict
-timeControl = {"startTime": 0, "endTime": 180, "timeStep": 30}
-timeControl1 = {"startTime": 60, "endTime": 270, "timeStep": 30}
+timeControl = {"startTime": 30, "endTime": 120, "timeStep": 30, "offSet": "11/01/2017"}
+timeControl1 = {
+    "startTime": "11/01/2017",
+    "endTime": "11/01/2017 00:10:00",
+    "timeStep": 30,
+    "offSet": 0,
+}
 
 # boundaryControl
-boundary01 =[  ["U_Coupled02","U","J4",{"model":"SWMM"},]]
-boundary011 =[  ["U_Coupled02","p","Out1",{"model":"SWMM"},]]
-boundary022 =[["U_Coupled02","p","movingWall",{"model":"OpenFOAM"},]]
-boundary02 =[["U_Coupled02","U","inlet",{"model":"OpenFOAM"},]]
+boundary01 = [
+    [
+        "U_Coupled02",
+        "U",
+        "J4",
+        {"model": "SWMM"},
+    ]
+]
+boundary011 = [
+    [
+        "U_Coupled02",
+        "p",
+        "Out1",
+        {"model": "SWMM"},
+    ]
+]
+boundary022 = [
+    [
+        "U_Coupled02",
+        "p",
+        "movingWall",
+        {"model": "OpenFOAM"},
+    ]
+]
+boundary02 = [
+    [
+        "U_Coupled02",
+        "U",
+        "inlet",
+        {"model": "OpenFOAM"},
+    ]
+]
 
 # Cases
 ## SWMM
