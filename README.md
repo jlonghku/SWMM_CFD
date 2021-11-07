@@ -17,7 +17,7 @@ The following are the most common steps for using this model:
 6. View or post-processing the results of the simulation.
 For a quick start of a sample case, please refer to Section 2 in manual. For more settings of different control files, please refer to Section 3 in manual of setting up different case files.
 
-We provide some example cases in the directionary SWMM_CFD/Case. A quick start command of the sample 1:
+We provide some example cases in the directionary SWMM_CFD. A quick start command of the sample 1:
 ```python
 python3 main.py
 ```
