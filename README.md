@@ -1,4 +1,4 @@
-# SWMM–CFD Coupling Manual
+# SWMM_CFD Coupling Manual
 
 Thanks to the useful **[foamlib](https://github.com/gerlero/foamlib)** package, this project demonstrates a simplified coupling between **SWMM** and **CFD (OpenFOAM)**.  
 Although slower than the original implementation, this version is **clear, simple, and easy to use**.  
