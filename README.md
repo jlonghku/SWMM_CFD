@@ -1,26 +1,75 @@
-# SWMM_CFD
-Model coupling SWMM and OpenFOAM
-## Installation
-The tool is designed to run under Linux operating system, where Ubuntu 18.04 and 20.04 are recommended. It contains a self-extracting setup script. To install it:
-1. Select a path where you want to install it and use the commands below in this path
-2. Download the package by command:
-“git clone https://github.com/jlonghku/SWMM_CFD ”
-3. Change the permission of package: “sudo chmod 755 -R SWMM_CFD”
-4. Run the “install.sh” script file in the file directory downloaded: “./SWMM_CFD /install.sh”
-## General steps of model operation
-The following are the most common steps for using this model:
-1. Prepare the SWMM case input file using the GUI of EPA SWMM.
-2. Prepare the OpenFOAM case by modifying the parameters on the example provided in directory “SWMM_CFD/Case” or customizing new cases according to your study.
-3. Organize all SWMM and OpenFOAM cases into a folder according to the template provided. 
-4. Add the control file into the case and modify the parameters inside.
-5. Run the cases by command.
-6. View or post-processing the results of the simulation.
-For a quick start of a sample case, please refer to Section 2 in manual. For more settings of different control files, please refer to Section 3 in manual of setting up different case files.
+# SWMM–CFD Coupling Manual
 
-We provide some example cases in the directionary SWMM_CFD. A quick start command of sample 1:
+Thanks to the useful **[foamlib](https://github.com/gerlero/foamlib)** package, this project demonstrates a simplified coupling between **SWMM** and **CFD (OpenFOAM)**.  
+Although slower than the original implementation, this version is **clear, simple, and easy to use**.  
+The old version is archived under `old_files/` for reference.
+
+---
+
+## Features
+
+- **Simplicity**: Straightforward code with a clear main loop.  
+- **Convenience**: Minimal configuration needed to start coupled runs.  
+- **Traceability**: Old code archived in `old_files/`.  
+
+---
+
+## Requirements
+
+- [OpenFOAM](https://openfoam.org/) installed with environment variable `FOAM_TUTORIALS` set.  
+- [SWMM](https://www.epa.gov/water-research/storm-water-management-model-swmm) input file available (e.g., `SWMM/swmm.inp`).  
+- Python packages:
+  - `foamlib`
+  - `pyswmm`
+  - `python-dateutil`
+
+---
+
+## Quick Start
+
+1. **Set up environment**
+   ```bash
+   export FOAM_TUTORIALS=/path/to/OpenFOAM/tutorials
+   pip install foamlib pyswmm python-dateutil
+   ```
+
+2. **Run the coupling script**
+   ```bash
+   python swmm_cfd.py
+   ```
+
+3. **Workflow**
+   - Clone the `pitzDaily` tutorial from `$FOAM_TUTORIALS`.  
+   - Run SWMM simulation step by step.  
+   - Within `openfoam_range`, OpenFOAM is triggered for short runs.  
+   - Inflow from SWMM node (e.g., `J4`) is mapped to the OpenFOAM inlet via `flowRateInletVelocity`.  
+   - Log files are cleaned automatically after each OpenFOAM run.  
+
+
+
+---
+
+## Example Code Snippet
+
 ```python
-python3 main.py
+inflow = Nodes(sim_swmm)["J4"].total_outflow
+boundaryDict = {
+    "U": {
+        "inlet": {
+            "type": "flowRateInletVelocity",
+            "volumetricFlowRate": inflow,
+        }
+    }
+}
+step_openfoam(sim_swmm, my_pitz, openfoam_range, step, boundaryDict)
 ```
 
-For more details, please see the user's manual. 
+---
 
+
+## Notes
+
+- Adjust `openfoam_range` in the script to control when OpenFOAM runs.  
+- Change SWMM node ID (currently `"J4"`) to match your model.  
+- For inflows, the `flowRateInletVelocity` boundary condition is recommended.  
+- `my_pitz.clean()` ensures OpenFOAM case is reset after simulation.
