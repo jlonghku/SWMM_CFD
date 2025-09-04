@@ -37,11 +37,7 @@ def step_openfoam(sim_swmm, sim_openfoam, date_range, step, boundaryDict):
 
 if __name__ == "__main__":
     # --- Initialize OpenFOAM case ---
-    CASE_NAME = "myPitz"
-    TUTORIAL = Path(os.environ["FOAM_TUTORIALS"]) / "incompressibleFluid/pitzDaily"
-
-    shutil.rmtree(CASE_NAME, ignore_errors=True)  # remove old case
-    my_pitz = FoamCase(TUTORIAL).clone(CASE_NAME)
+    my_pitz = FoamCase("myPitz")
     my_pitz.control_dict.update({"deltaT": 0.01, "writeInterval": 0.1})
 
     # Time window during which OpenFOAM is triggered
