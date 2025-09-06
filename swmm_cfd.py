@@ -1,7 +1,5 @@
-import os
-import shutil
-from pathlib import Path
 from datetime import datetime
+from datetime import timedelta
 from dateutil import parser
 
 from foamlib import FoamCase
@@ -30,7 +28,7 @@ def step_openfoam(sim_swmm, sim_openfoam, date_range, step, boundaryDict):
         # Clean logs to keep outputs tidy
         for f in sim_openfoam.path.glob("log.*"):
             f.unlink(missing_ok=True)
-
+        print(f"OpenFOAM step started at {sim_swmm.current_time-timedelta(seconds=step)}")
         sim_openfoam.run()
         print(f"OpenFOAM step finished at {sim_swmm.current_time}")
 
